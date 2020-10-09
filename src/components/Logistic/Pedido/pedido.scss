@@ -1,0 +1,85 @@
+.prod__codigo-container {
+  display: inline-block;
+  vertical-align: top;
+  width: 25%;
+}
+
+.prod__description-container {
+  display: inline-block;
+  width: 75%;
+}
+
+.prod__description {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.prod__codigo-text {
+  font-size: 14px;
+}
+
+.prod__stock-text {
+  display: block;
+  font-size: 15px;
+}
+
+.am-list-extra.precio {
+  margin-left: 10px;
+}
+
+.prod__subtotal {
+  width: 50%;
+}
+
+.MuiFormControl-root.MuiTextField-root {
+  margin-top: 5px;
+}
+
+.prod__button-container {
+  margin: 15px 10px;
+}
+
+.prod__button-add {
+  width: 100%;
+}
+
+.am-list-brief {
+  margin-top: 0 !important;
+}
+
+.am-list-line::after {
+  background-color: unset !important;
+}
+
+.am-list-line-multiple {
+  padding: 6px !important;
+}
+
+.total-banner {
+  background: #333;
+  border-radius: .375em .375em 0 0;
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,.12);
+  padding: 17px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: -webkit-fill-available;
+  z-index: 9999;
+}
+
+.total__text {
+  color: #fff;
+  font-size: 20px;
+  margin: 0 0 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.total__button {
+  width: 100%;
+}
+
+.table-container.pedido {
+  margin-bottom: 125px;
+}

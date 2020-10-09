@@ -3,21 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@material-ui/core": "^4.11.0",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
+    "antd-mobile": "^2.3.4",
     "bootstrap": "^4.5.2",
-    "firebase": "^7.17.2",
+    "elasticsearchclient": "^0.5.3",
+    "firebase": "^7.21.1",
+    "firebase-tools": "^8.11.2",
+    "moment": "^2.29.0",
+    "node-sass": "^4.14.1",
     "react": "^16.13.1",
+    "react-datetime": "^3.0.4",
     "react-dom": "^16.13.1",
     "react-router-dom": "^5.2.0",
-    "react-scripts": "3.4.2"
+    "react-scripts": "^3.4.3"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "deploy": "npm run build && firebase deploy"
   },
   "eslintConfig": {
     "extends": "react-app"

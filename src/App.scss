@@ -1,0 +1,112 @@
+@import './components/FooterView/styles';
+@import './components/Logistic/Pedido/pedido';
+// @import 'antd-mobile/dist/antd-mobile.css';
+
+.container h2 {
+  text-align: center;
+  margin: 25px auto;
+}
+
+.list {
+  text-align: left;
+  // max-width: 750px;
+  // margin: auto;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+.submit-form {
+  max-width: 300px;
+  margin: auto;
+}
+
+.edit-form {
+  max-width: 300px;
+  margin: auto;
+}
+
+.checkbox__adentro {
+  display: inline-block;
+  width: 6%;
+  vertical-align: bottom;
+  margin-left: 15px;
+}
+
+.total__title {
+  font-weight: 600;
+  display: block;
+  font-size: 16px;
+  color: #0000ff;
+}
+
+.total__title.free {
+  color: #318000;
+}
+
+.list__reservas {
+  display: inline-block;
+  margin-bottom: 10px;
+}
+
+.list__libres {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.new-reservation {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.cant__afuera {
+  margin-left: 10px;
+}
+
+.table-container {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.cant__total {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.cant__total.red {
+  color: red;
+}
+
+.column-actions {
+  text-align: center;
+}
+
+.btn.btn-danger {
+  margin-top: 5px;
+}
+
+.go-listado {
+  margin-left: 10px;
+}
+
+.empty__container {
+  text-align: center;
+}
+
+@media (min-width: 700px) {
+  .col-md-6 {
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+
+  .list__libres {
+    display: inline-block;
+    margin-left: 80px;
+  }
+
+  .new-reservation {
+    text-align: left;
+  }
+}
