@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import ClientsDataService from "../../../services/clients.service";
+import { Toast } from "antd-mobile";
 import {
   Button,
   TextField,
@@ -10,81 +10,89 @@ import {
   Select,
   MenuItem,
 } from "@material-ui/core";
+import ClientService from "../../../services/clients.service";
 import { dias } from "../../../utils/default";
 
-export default class AddClient extends Component {
+export default class editClient extends Component {
   constructor(props) {
     super(props);
-    this.onChangeValues = this.onChangeValues.bind(this);
-    this.onDataChange = this.onDataChange.bind(this);
-    this.saveClient = this.saveClient.bind(this);
-    this.newClient = this.newClient.bind(this);
-    this.onChangeDay = this.onChangeDay.bind(this);
-    
+
     this.state = {
-      barrio: "",
-      domicilio: "",
-      dni: "",
-      formato_comercial: "",
-      razon_social: "",
-      telefono: "",
-      estado: "no visitado",
-      motivo: "",
-      lastId: 0,
-      dia: 1,
-      condicionIva: "",
+      currentClient: {
+        key: null,
+        id: 0,
+        barrio: "",
+        domicilio: "",
+        dni: "",
+        formato_comercial: "",
+        razon_social: "",
+        telefono: "",
+        dia: 1,
+        motivo: "",
+        estado: "",
+        condicionIva: ""
+      },
 
       submitted: false,
     };
+    this.updateClient = this.updateClient.bind(this);
+    this.onChangeValues = this.onChangeValues.bind(this);
+    this.onDataChange = this.onDataChange.bind(this);
+    this.onChangeDay = this.onChangeDay.bind(this);
   }
 
   componentDidMount() {
-    ClientsDataService.getAll()
+    const id = parseInt(this.props.match.params.id, 10);
+    ClientService.getAll()
       .orderByChild("id")
-      .limitToLast(1)
-      .once("child_added", this.onDataChange);
-  }
-
-  componentWillUnmount() {
-    ClientsDataService.getAll().off("child_added", this.onDataChange);
+      .equalTo(id)
+      .once("value", this.onDataChange);
   }
 
   onDataChange(items) {
-    this.setState({
-      lastId: items.val().id || 0,
-    });
+    let key = Object.keys(items.val());
+    let data = items.val();
+    const currentClient = data[key];
+    currentClient.key = key[0];
+    this.setState({ currentClient });
   }
 
   onChangeValues(e) {
     const name = e.target.name;
     const value = e.target.value;
-    this.setState({ [name]: value });
+    this.setState({
+      currentClient: {
+        ...this.state.currentClient,
+        [name]: value,
+      },
+    });
   }
 
   onChangeDay(e) {
-    this.setState({ dia: e.target.value });
+    this.setState({
+      currentClient: { ...this.state.currentClient, dia: e.target.value },
+    });
   }
 
-  saveClient() {
-    let data = {
-      id: this.state.lastId + 1,
-      razon_social: this.state.razon_social,
-      domicilio: this.state.domicilio,
-      dni: this.state.dni,
-      barrio: this.state.barrio,
-      formato_comercial: this.state.formato_comercial,
-      telefono: this.state.telefono,
-      dia: this.state.dia,
-      motivo: this.state.motivo,
-      estado: this.state.estado,
-      condicionIva: this.state.condicionIva,
+  updateClient() {
+    const data = {
+      id: this.state.currentClient.id,
+      barrio: this.state.currentClient.barrio,
+      domicilio: this.state.currentClient.domicilio,
+      dni: this.state.currentClient.dni,
+      formato_comercial: this.state.currentClient.formato_comercial,
+      razon_social: this.state.currentClient.razon_social,
+      telefono: this.state.currentClient.telefono,
+      dia: this.state.currentClient.dia,
+      motivo: this.state.currentClient.motivo,
+      estado: this.state.currentClient.estado,
+      condicionIva: this.state.currentClient.condicionIva,
     };
 
-    ClientsDataService.create(data)
+    ClientService.update(this.state.currentClient.key, data)
       .then(() => {
         this.setState({
           submitted: true,
-          lastId: this.state.lastId + 1,
         });
       })
       .catch((e) => {
@@ -92,53 +100,54 @@ export default class AddClient extends Component {
       });
   }
 
-  newClient() {
-    this.setState({
-      barrio: "",
-      domicilio: "",
-      dni: "",
-      formato_comercial: "",
-      razon_social: "",
-      telefono: "",
-      estado: "no visitado",
-      motivo: "",
-      dia: 1,
-      condicionIva: "",
-
-      submitted: false,
-    });
-  }
-
   render() {
     return (
       <Container component="main" maxWidth="xs">
         {this.state.submitted ? (
           <div>
-            <h4>Cliente creado correctamente!</h4>
-            <button className="btn btn-success" onClick={this.newClient}>
+            <h4>Cliente editado correctamente!</h4>
+            <a
+              className="btn btn-primary go-listado"
+              href="/client"
+              role="button"
+            >
               Nuevo
-            </button>
-            <a className="btn btn-primary go-listado" href="/list-client" role="button">
+            </a>
+            <a
+              className="btn btn-primary go-listado"
+              href="/list-client"
+              role="button"
+            >
               Listado
             </a>
           </div>
         ) : (
           <div className="form-container">
             <Typography component="h1" variant="h5">
-              Nuevo Cliente
+              Editar Cliente
             </Typography>
             <div className="login-container">
               <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    name="id"
+                    variant="outlined"
+                    disabled
+                    fullWidth
+                    id="id"
+                    label="ID"
+                    value={this.state.currentClient.id}
+                  />
+                </Grid>
                 <Grid item xs={12}>
                   <TextField
                     name="razon_social"
                     variant="outlined"
                     required
                     fullWidth
-                    autoFocus
                     id="razon_social"
                     label="Razón social"
-                    value={this.state.razon_social}
+                    value={this.state.currentClient.razon_social}
                     onChange={this.onChangeValues}
                   />
                 </Grid>
@@ -146,9 +155,10 @@ export default class AddClient extends Component {
                   <TextField
                     name="dni"
                     variant="outlined"
+                    required
                     fullWidth
                     id="dni"
-                    value={this.state.dni}
+                    value={this.state.currentClient.dni}
                     label="DNI/CUIT"
                     onChange={this.onChangeValues}
                   />
@@ -160,7 +170,7 @@ export default class AddClient extends Component {
                     fullWidth
                     id="domicilio"
                     label="Domicilio"
-                    value={this.state.domicilio}
+                    value={this.state.currentClient.domicilio}
                     name="domicilio"
                     onChange={this.onChangeValues}
                   />
@@ -168,10 +178,11 @@ export default class AddClient extends Component {
                 <Grid item xs={12}>
                   <TextField
                     variant="outlined"
+                    required
                     fullWidth
                     id="barrio"
                     label="Barrio"
-                    value={this.state.barrio}
+                    value={this.state.currentClient.barrio}
                     name="barrio"
                     onChange={this.onChangeValues}
                   />
@@ -179,10 +190,11 @@ export default class AddClient extends Component {
                 <Grid item xs={12}>
                   <TextField
                     variant="outlined"
+                    required
                     fullWidth
                     id="formato_comercial"
                     label="Formato comercial"
-                    value={this.state.formato_comercial}
+                    value={this.state.currentClient.formato_comercial}
                     name="formato_comercial"
                     onChange={this.onChangeValues}
                   />
@@ -195,7 +207,7 @@ export default class AddClient extends Component {
                     id="telefono"
                     label="Teléfono"
                     name="telefono"
-                    value={this.state.telefono}
+                    value={this.state.currentClient.telefono}
                     onChange={this.onChangeValues}
                   />
                 </Grid>
@@ -203,12 +215,12 @@ export default class AddClient extends Component {
                   <InputLabel>Día</InputLabel>
                   <Select
                     onChange={this.onChangeDay}
-                    value={this.state.dia}
+                    value={this.state.currentClient.dia}
                     className="select__form"
                     fullWidth
                   >
                     {dias.map((dia) => (
-                      <MenuItem key={dia.value} value={dia.value} name="dia">
+                      <MenuItem key={dia.value} value={dia.value}>
                         {dia.name}
                       </MenuItem>
                     ))}
@@ -221,7 +233,7 @@ export default class AddClient extends Component {
                     id="condicionIva"
                     label="Condición IVA"
                     name="condicionIva"
-                    value={this.state.condicionIva}
+                    value={this.state.currentClient.condicionIva}
                     onChange={this.onChangeValues}
                   />
                 </Grid>
@@ -232,7 +244,7 @@ export default class AddClient extends Component {
                 variant="contained"
                 color="primary"
                 className="button__save"
-                onClick={this.saveClient}
+                onClick={this.updateClient}
               >
                 Aceptar
               </Button>

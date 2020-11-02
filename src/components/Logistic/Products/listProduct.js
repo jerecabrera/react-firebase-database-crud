@@ -1,10 +1,11 @@
 import React, { Component } from "react";
 import ProductosDataService from "../../../services/productos.service";
-import { Modal } from "antd-mobile";
+import { Toast, Modal } from "antd-mobile";
+import SearchIcon from "@material-ui/icons/Search";
 
 const alert = Modal.alert;
 
-export default class listClient extends Component {
+export default class listProduct extends Component {
   constructor(props) {
     super(props);
     this.refreshList = this.refreshList.bind(this);
@@ -20,16 +21,15 @@ export default class listClient extends Component {
       products: [],
       currentProduct: null,
       currentIndex: -1,
-      nombre: "",
-      domicilio: "",
-      dni: 0,
       productoFilter: [],
       searchTitle: "",
     };
   }
 
   componentDidMount() {
-    ProductosDataService.getAll().orderByChild("id").on("value", this.onDataChange);
+    ProductosDataService.getAll()
+      .orderByChild("id")
+      .on("value", this.onDataChange);
   }
 
   componentWillUnmount() {
@@ -66,44 +66,21 @@ export default class listClient extends Component {
   searchTitle(e) {
     const { products } = this.state;
     clearTimeout(this.timer);
-    // const value = parseInt(e.target.value, 10);
     const value = e.target.value;
-    // const value = this.state.searchTitle;
     this.timer = setTimeout(() => {
       if (value) {
-        // ProductosDataService.getAll().orderByChild("descripcion").startAt(value)
-        // // .endAt(`${value}\uf8ff`)
-        // .on("child_added", function(snapshot) {
-        //     console.log(snapshot.val());
-        //   });
-        const filter = products.filter(a => a.descripcion.toLowerCase().match(value.toLowerCase()))
-        this.setState({ productoFilter: filter, searchTitle: value })
-
-        // console.log(products.filter(a => a.descripcion.toLowerCase().match(value.toLowerCase())));
-        } else {
-          this.setState({ searchTitle: '' })
-        }
-      }, 500);
-    // this.state.clients.forEach((a) => {
-    //   ;
-    // })
+        const filter = products.filter(
+          (prod) =>
+            prod.descripcion.toLowerCase().match(value.toLowerCase()) ||
+            prod.codigo.toLowerCase().match(value.toLowerCase()) ||
+            prod.marca.toLowerCase().match(value.toLowerCase())
+        );
+        this.setState({ productoFilter: filter, searchTitle: value });
+      } else {
+        this.setState({ searchTitle: "" });
+      }
+    }, 500);
   }
-
-  // filterReservations(fecha, turnoParam) {
-  //   const { clients, turno, date } = this.state;
-  //   let reserva = [];
-  //   let cantAdentro = 0;
-  //   let cantAfuera = 0;
-  //   const turnoComp = turnoParam || turno;
-  //   const fechaComp = fecha || date;
-  //   clients.forEach((item) => {
-  //     if (item.date === fechaComp && item.turno === turnoComp) {
-  //       reserva.push(item);
-  //       cantAdentro = item.adentro ? cantAdentro + 1 : cantAfuera + 1;
-  //     }
-  //   });
-  //   this.setState({ reservaFilter: reserva, cantAdentro, cantAfuera });
-  // }
 
   onChangeDate(e) {
     const dateFormat = e.format("DD-MM-YYYY");
@@ -134,16 +111,16 @@ export default class listClient extends Component {
   deleteProduct(key) {
     ProductosDataService.delete(key)
       .then(() => {
-        console.log('ok');
+        Toast.success("Eliminado correctamente!!", 1);
       })
       .catch((e) => {
-        console.log(e);
+        Toast.fail("Ocurrió un error", 1);
       });
   }
 
   render() {
     const { products, searchTitle, productoFilter } = this.state;
-    const displayTable = searchTitle !== '' ? productoFilter : products
+    const displayTable = searchTitle !== "" ? productoFilter : products;
     return (
       <div className="list row">
         <div className="col-md-6">
@@ -153,24 +130,23 @@ export default class listClient extends Component {
             </a>
           </div>
           <div className="col-md-8">
-          <div className="input-group mb-3">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Buscar por descripción"
-              onChange={this.searchTitle}
-            />
-            <div className="input-group-append">
-              <button
-                className="btn btn-outline-secondary"
-                type="button"
-                onClick={this.searchTitle}
-              >
-                Buscar
-              </button>
+            <div className="input-group mb-3">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Buscar"
+                onChange={this.searchTitle}
+              />
+              <div className="input-group-append">
+                <button
+                  className="btn btn-outline-secondary search-button"
+                  type="button"
+                >
+                  <SearchIcon color="action" />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
           <h4>Listado de productos</h4>
           <div className="table-container">
             <table className="table">
@@ -202,13 +178,19 @@ export default class listClient extends Component {
                           >
                             Editar
                           </a>
-                          <button type="button" className="btn btn-danger"
-                          onClick={() =>
-                            alert('Eliminar', 'Estás seguro???', [
-                              { text: 'Cancelar' },
-                              { text: 'Ok', onPress: () => this.deleteProduct(producto.key) },
-                            ])
-                          }
+                          <button
+                            type="button"
+                            className="btn btn-danger"
+                            onClick={() =>
+                              alert("Eliminar", "Estás seguro???", [
+                                { text: "Cancelar" },
+                                {
+                                  text: "Ok",
+                                  onPress: () =>
+                                    this.deleteProduct(producto.key),
+                                },
+                              ])
+                            }
                           >
                             Eliminar
                           </button>
@@ -219,25 +201,6 @@ export default class listClient extends Component {
               </tbody>
             </table>
           </div>
-          {/* <div className="modal fade" style={{display: "block", paddingRight: "15px"}} id="deleteModal" tabIndex="-1" role="dialog" aria-labelledby="deleteModalLabel">
-  <div className="modal-dialog" role="document">
-    <div className="modal-content">
-      <div className="modal-header">
-        <h5 className="modal-title" id="deleteModalLabel">Eliminar producto</h5>
-        <button type="button" className="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div className="modal-body">
-        Seguro que desea eliminar este producto?
-      </div>
-      <div className="modal-footer">
-        <button type="button" className="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-        <button type="button" className="btn btn-primary">Aceptar</button>
-      </div>
-    </div>
-  </div>
-</div> */}
         </div>
       </div>
     );

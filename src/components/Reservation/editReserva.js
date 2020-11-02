@@ -1,8 +1,22 @@
 import React, { Component } from "react";
 import Datetime from "react-datetime";
-import { TextField, InputAdornment, Button } from "@material-ui/core";
+import { Toast } from "antd-mobile";
+import {
+  Button,
+  TextField,
+  Typography,
+  Grid,
+  Container,
+  Checkbox,
+  FormControlLabel,
+  Tooltip,
+  IconButton,
+} from "@material-ui/core";
+import HelpOutlineIcon from "@material-ui/icons/HelpOutline";
 import moment from "moment";
 import ReservationDataService from "../../services/reservation.service";
+
+const limitePorMesa = 6;
 
 export default class AddReservation extends Component {
   constructor(props) {
@@ -11,10 +25,8 @@ export default class AddReservation extends Component {
     this.onChangeMesa = this.onChangeMesa.bind(this);
     this.onChangeCantidad = this.onChangeCantidad.bind(this);
     this.onChangeAdentro = this.onChangeAdentro.bind(this);
-    this.onChangeDate = this.onChangeDate.bind(this);
-    this.onChangeTurno = this.onChangeTurno.bind(this);
     this.updateReserva = this.updateReserva.bind(this);
-    this.newReserva = this.newReserva.bind(this);
+    this.changeTooltip = this.changeTooltip.bind(this);
     this.onDataChange = this.onDataChange.bind(this);
     this.getMesas = this.getMesas.bind(this);
     this.obtainLastMesa = this.obtainLastMesa.bind(this);
@@ -34,8 +46,9 @@ export default class AddReservation extends Component {
       mesasAfuera: {},
       error: {
         value: false,
-        message: '',
+        message: "",
       },
+      open: false,
 
       submitted: false,
     };
@@ -47,7 +60,6 @@ export default class AddReservation extends Component {
       .orderByChild("id")
       .equalTo(id)
       .once("value", this.onDataChange);
-    ReservationDataService.getAll().orderByChild("mesa").on("value", this.getMesas);
   }
 
   componentWillUnmount() {
@@ -60,15 +72,22 @@ export default class AddReservation extends Component {
     const currentReserva = data[key];
     currentReserva.key = key[0];
     this.setState({ currentReserva });
+    ReservationDataService.getAll()
+      .orderByChild("mesa")
+      .on("value", this.getMesas);
   }
 
   getMesas(items) {
-    const { currentReserva } = this.state
+    const { currentReserva } = this.state;
     let reservas = [];
     items.forEach((item) => {
       let data = item.val();
-      if (data.turno === currentReserva.turno && data.date === currentReserva.date) {
+      if (
+        data.turno === currentReserva.turno &&
+        data.date === currentReserva.date
+      ) {
         reservas.push({
+          id: data.id,
           name: data.name,
           adentro: data.adentro,
           mesa: data.mesa,
@@ -116,7 +135,7 @@ export default class AddReservation extends Component {
       },
       error: {
         value: false,
-        message: '',
+        message: "",
       },
     });
   }
@@ -139,63 +158,50 @@ export default class AddReservation extends Component {
     });
   }
 
-  onChangeDate(e) {
-    const dateFormat = e.format("DD-MM-YYYY");
-    this.setState({ date: dateFormat });
-    this.obtainLastMesa(dateFormat, "");
-  }
-
-  onChangeTurno(e) {
-    this.setState({ turno: e.target.value });
-    this.obtainLastMesa("", e.target.value);
-  }
-
   validationLugar(mesa) {
     if (this.state.currentReserva.adentro && mesa > 10) {
-      this.setState({ error: {value: true, message: 'Número de mesa no corresponde para Adentro'} });
+      this.setState({
+        error: {
+          value: true,
+          message: "Número de mesa no corresponde para Adentro",
+        },
+      });
       return false;
     }
-    if (!this.state.currentReserva.adentro && mesa > 55) {
-      this.setState({ error: {value: true, message: 'Número de mesa no corresponde para Afuera'} });
+    if (!this.state.currentReserva.adentro && (mesa > 55 || mesa < 11)) {
+      this.setState({
+        error: {
+          value: true,
+          message: "Número de mesa no corresponde para Afuera",
+        },
+      });
+      return false;
+    }
+    if (
+      this.state.reservas.filter(
+        (res) => res.mesa === mesa && res.id !== this.state.currentReserva.id
+      ).length > 0
+    ) {
+      this.setState({
+        error: {
+          value: true,
+          message: "Ya existe otra reserva con ese Nº de mesa",
+        },
+      });
       return false;
     }
 
-    if (this.state.reservas.filter(res => res.mesa === mesa).length > 0) {
-      this.setState({ error: {value: true, message: 'Ya existe otra reserva con ese Nº de mesa'} });
+    if (this.state.currentReserva.cantidad > limitePorMesa) {
+      this.setState({
+        error: {
+          value: true,
+          message: `Cantidad máxima por mesas (${limitePorMesa}) superada`,
+        },
+      });
       return false;
     }
 
     return true;
-  }
-
-  saveReserva() {
-    // console.log(this.state.mesasAdentro.filter(a => a.date === this.state.date && a.turno === this.state.turno))
-    console.log(this.state.lastMesaAdentro, this.state.lastMesaAfuera);
-    let data = {
-      id: this.state.lastId + 1,
-      name: this.state.name,
-      adentro: this.state.adentro,
-      mesa: this.state.adentro
-        ? this.state.lastMesaAdentro + 1
-        : this.state.lastMesaAfuera + 1,
-      cantidad: parseInt(this.state.cantidad, 10),
-      date: this.state.date,
-      turno: this.state.turno,
-    };
-    if (this.validationLugar(data.mesa)) {
-      ReservationDataService.create(data)
-        .then(() => {
-          console.log("Created new item successfully!");
-          this.setState({
-            submitted: true,
-          });
-        })
-        .catch((e) => {
-          console.log(e);
-        });
-    } else {
-      this.setState({ error: true });
-    }
   }
 
   updateReserva() {
@@ -206,6 +212,7 @@ export default class AddReservation extends Component {
       cantidad: parseInt(this.state.currentReserva.cantidad, 10),
       date: this.state.currentReserva.date,
       turno: this.state.currentReserva.turno,
+      adentro: this.state.currentReserva.adentro,
     };
 
     if (this.validationLugar(data.mesa)) {
@@ -215,7 +222,7 @@ export default class AddReservation extends Component {
             submitted: true,
             error: {
               value: false,
-              message: '',
+              message: "",
             },
           });
         })
@@ -225,122 +232,258 @@ export default class AddReservation extends Component {
     }
   }
 
-  newReserva() {
-    this.setState({
-      name: "",
-      adentro: false,
-      mesa: 0,
-      cantidad: 0,
-
-      submitted: false,
-    });
+  changeTooltip() {
+    this.setState({ open: !this.state.open });
   }
 
   render() {
     return (
-      <div className="submit-form">
+      <Container component="main" maxWidth="xs">
         {this.state.submitted ? (
           <div>
             <h4>Reserva editada correctamente!</h4>
-            <a className="btn btn-success"  href="/forest/reservation" role="button">
+            <a
+              className="btn btn-success"
+              href="/forest/reservation"
+              role="button"
+            >
               Nueva Reserva
             </a>
-            <a className="btn btn-primary go-listado" href="/forest/reservas" role="button">
+            <a
+              className="btn btn-primary go-listado"
+              href="/forest/reservas"
+              role="button"
+            >
               Listado
             </a>
           </div>
         ) : (
-          <div>
-            <h4>Editar Reserva</h4>
-            <div className="form-group">
-              <TextField
-                id="standard-basic"
-                label="Fecha"
-                value={this.state.currentReserva.date}
-                disabled
-              />
+          <div className="form-container">
+            <Typography component="h1" variant="h5">
+              Editar Reserva
+            </Typography>
+            <div className="login-container">
+              {this.state.error.value && (
+                <div className="alert alert-danger" role="alert">
+                  {this.state.error.message}
+                  <Tooltip
+                    title="Mesas adentro: 1 - 10. Mesas afuera: 11 - 55"
+                    open={this.state.open}
+                  >
+                    <IconButton
+                      aria-label="mesas"
+                      onClick={this.changeTooltip}
+                      color="secondary"
+                    >
+                      <HelpOutlineIcon />
+                    </IconButton>
+                  </Tooltip>
+                </div>
+              )}
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    id="standard-basic"
+                    label="Fecha"
+                    value={this.state.currentReserva.date}
+                    disabled
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    id="standard-basic"
+                    label="Turno"
+                    value={this.state.currentReserva.turno}
+                    disabled
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    variant="outlined"
+                    required
+                    fullWidth
+                    className="default__textfield"
+                    id="name"
+                    label="Nombre"
+                    value={this.state.currentReserva.name}
+                    name="name"
+                    onChange={this.onChangeName}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    variant="outlined"
+                    className="default__textfield"
+                    fullWidth
+                    required
+                    id="cantidad"
+                    label="Cantidad de personas"
+                    value={this.state.currentReserva.cantidad}
+                    name="cantidad"
+                    onChange={this.onChangeCantidad}
+                    error={this.state.currentReserva.cantidad > limitePorMesa}
+                    helperText={
+                      this.state.currentReserva.cantidad > limitePorMesa
+                        ? "Cantidad máxima por mesa superada"
+                        : ""
+                    }
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        color="primary"
+                        value={this.state.currentReserva.adentro}
+                        onChange={this.onChangeAdentro}
+                        name="iscumple"
+                        checked={this.state.currentReserva.adentro}
+                      />
+                    }
+                    labelPlacement="start"
+                    label="Adentro"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    variant="outlined"
+                    className="default__textfield"
+                    fullWidth
+                    required
+                    id="mesa"
+                    label="Mesa"
+                    name="mesa"
+                    value={this.state.currentReserva.mesa}
+                    onChange={this.onChangeMesa}
+                    min={this.state.currentReserva.adentro ? 1 : 11}
+                    max={this.state.currentReserva.adentro ? 10 : 55}
+                  />
+                </Grid>
+              </Grid>
+              <Button
+                type="button"
+                fullWidth
+                variant="contained"
+                color="primary"
+                className="button__save"
+                onClick={this.updateReserva}
+                disabled={
+                  this.state.currentReserva.name === "" ||
+                  this.state.currentReserva.cantidad === ""
+                }
+              >
+                Aceptar
+              </Button>
             </div>
-
-            <div className="form-group">
-              <TextField
-                id="standard-basic"
-                label="Turno"
-                value={this.state.currentReserva.turno}
-                disabled
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="name">Nombre</label>
-              <input
-                type="text"
-                className="form-control"
-                id="name"
-                required
-                value={this.state.currentReserva.name}
-                onChange={this.onChangeName}
-                name="name"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="cantidad">Cantidad</label>
-              <input
-                type="number"
-                className="form-control"
-                id="cantidad"
-                required
-                value={this.state.currentReserva.cantidad}
-                onChange={this.onChangeCantidad}
-                name="cantidad"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="adentro">Adentro</label>
-              <input
-                type="checkbox"
-                className="form-control checkbox__adentro"
-                id="adentro"
-                required
-                value={this.state.currentReserva.adentro}
-                checked={this.state.currentReserva.adentro}
-                onChange={this.onChangeAdentro}
-                name="adentro"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="adentro">Mesa</label>
-              <input
-                type="number"
-                className="form-control"
-                id="mesa"
-                required
-                value={this.state.currentReserva.mesa}
-                onChange={this.onChangeMesa}
-                min={this.state.currentReserva.adentro ? 1 : 11}
-                max={this.state.currentReserva.adentro ? 10 : 55}
-                name="mesa"
-              />
-            </div>
-
-            {this.state.error.value && (
-              <div className="alert alert-danger" role="alert">
-                {this.state.error.message}
-              </div>
-            )}
-
-            <button
-              onClick={this.updateReserva}
-              className="btn btn-success"
-              disabled={this.state.name === "" || this.state.cantidad === ""}
-            >
-              Aceptar
-            </button>
           </div>
         )}
-      </div>
+      </Container>
     );
   }
 }
+//       <div className="submit-form">
+//         {this.state.submitted ? (
+//           <div>
+//             <h4>Reserva editada correctamente!</h4>
+//             <a className="btn btn-success"  href="/forest/reservation" role="button">
+//               Nueva Reserva
+//             </a>
+//             <a className="btn btn-primary go-listado" href="/forest/reservas" role="button">
+//               Listado
+//             </a>
+//           </div>
+//         ) : (
+//           <div>
+//             <h4>Editar Reserva</h4>
+//             <div className="form-group">
+//               <TextField
+//                 id="standard-basic"
+//                 label="Fecha"
+//                 value={this.state.currentReserva.date}
+//                 disabled
+//               />
+//             </div>
+
+//             <div className="form-group">
+//               <TextField
+//                 id="standard-basic"
+//                 label="Turno"
+//                 value={this.state.currentReserva.turno}
+//                 disabled
+//               />
+//             </div>
+
+//             <div className="form-group">
+//               <label htmlFor="name">Nombre</label>
+//               <input
+//                 type="text"
+//                 className="form-control"
+//                 id="name"
+//                 required
+//                 value={this.state.currentReserva.name}
+//                 onChange={this.onChangeName}
+//                 name="name"
+//               />
+//             </div>
+
+//             <div className="form-group">
+//               <label htmlFor="cantidad">Cantidad</label>
+//               <input
+//                 type="number"
+//                 className="form-control"
+//                 id="cantidad"
+//                 required
+//                 value={this.state.currentReserva.cantidad}
+//                 onChange={this.onChangeCantidad}
+//                 name="cantidad"
+//               />
+//             </div>
+
+//             <div className="form-group">
+//               <label htmlFor="adentro">Adentro</label>
+//               <input
+//                 type="checkbox"
+//                 className="form-control checkbox__adentro"
+//                 id="adentro"
+//                 required
+//                 value={this.state.currentReserva.adentro}
+//                 checked={this.state.currentReserva.adentro}
+//                 onChange={this.onChangeAdentro}
+//                 name="adentro"
+//               />
+//             </div>
+
+//             <div className="form-group">
+//               <label htmlFor="adentro">Mesa</label>
+//               <input
+//                 type="number"
+//                 className="form-control"
+//                 id="mesa"
+//                 required
+//                 value={this.state.currentReserva.mesa}
+//                 onChange={this.onChangeMesa}
+//                 min={this.state.currentReserva.adentro ? 1 : 11}
+//                 max={this.state.currentReserva.adentro ? 10 : 55}
+//                 name="mesa"
+//               />
+//             </div>
+
+//             {this.state.error.value && (
+//               <div className="alert alert-danger" role="alert">
+//                 {this.state.error.message}
+//               </div>
+//             )}
+
+//             <button
+//               onClick={this.updateReserva}
+//               className="btn btn-success"
+//               disabled={this.state.name === "" || this.state.cantidad === ""}
+//             >
+//               Aceptar
+//             </button>
+//           </div>
+//         )}
+//       </div>
+//     );
+//   }
+// }

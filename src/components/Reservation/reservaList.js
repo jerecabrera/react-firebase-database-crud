@@ -1,8 +1,19 @@
 import React, { Component } from "react";
 import Datetime from "react-datetime";
 import { Toast, Modal } from "antd-mobile";
+import {
+  Paper,
+  InputLabel,
+  Select,
+  MenuItem,
+  Checkbox,
+  IconButton,
+} from "@material-ui/core";
+import DeleteIcon from "@material-ui/icons/Delete";
+import EditIcon from "@material-ui/icons/Edit";
 import moment from "moment";
 import ReservationDataService from "../../services/reservation.service";
+import { turnos } from "../../utils/default";
 
 const alert = Modal.alert;
 
@@ -16,17 +27,18 @@ export default class ReservaList extends Component {
     this.onChangeTurno = this.onChangeTurno.bind(this);
     this.filterReservations = this.filterReservations.bind(this);
     this.deleteReserva = this.deleteReserva.bind(this);
+    this.changeSelect = this.changeSelect.bind(this);
 
     this.state = {
       reservas: [],
-      currentTutorial: null,
       currentIndex: -1,
-      date: moment(new Date().getTime()).format("DD-MM-YYYY"),
+      date: '',
       turno: "turno1",
       reservaFilter: [],
       cantAdentro: 0,
       cantAfuera: 0,
       cantTotal: 0,
+      totalAsistentes: 0,
     };
   }
 
@@ -54,6 +66,7 @@ export default class ReservaList extends Component {
         cantidad: data.cantidad,
         turno: data.turno,
         date: data.date,
+        asistio: data.asistio || false,
       });
     });
 
@@ -65,19 +78,23 @@ export default class ReservaList extends Component {
 
   filterReservations(fecha, turnoParam) {
     const { reservas, turno, date } = this.state;
+    const dateEmpty = date === '' ?  moment(new Date().getTime()).format("DD-MM-YYYY") : date;
     let reserva = [];
     let cantAdentro = 0;
     let cantAfuera = 0;
     let totalPersonas = 0;
+    let totalAsistentes = 0;
     const turnoComp = turnoParam || turno;
-    const fechaComp = fecha || date;
+    const fechaComp = fecha || dateEmpty;
     reservas.forEach((item) => {
       if (item.date === fechaComp && item.turno === turnoComp) {
         reserva.push(item);
         cantAdentro = item.adentro ? cantAdentro + 1 : cantAdentro;
         cantAfuera = !item.adentro ? cantAfuera + 1 : cantAfuera;
         totalPersonas += parseInt(item.cantidad, 10);
-        console.log(item.cantidad, totalPersonas);
+        if (item.asistio) {
+          totalAsistentes += parseInt(item.cantidad, 10);
+        }
       }
     });
     this.setState({
@@ -85,6 +102,7 @@ export default class ReservaList extends Component {
       cantAdentro,
       cantAfuera,
       cantTotal: totalPersonas,
+      totalAsistentes,
     });
   }
 
@@ -117,19 +135,42 @@ export default class ReservaList extends Component {
   deleteReserva(key) {
     ReservationDataService.delete(key)
       .then(() => {
-        Toast.success("Eliminado correctamente!!", 1);
+        Toast.success("Eliminado correctamente!!", 1, () => {
+          window.location.reload(false);
+        });
       })
       .catch((e) => {
         Toast.fail("Ocurrió un error !!!", 2);
       });
   }
 
+  changeSelect(reserva) {
+    const data = {
+      asistio: !reserva.asistio,
+    };
+
+    ReservationDataService.update(reserva.key, data)
+      .then(() => {
+        this.filterReservations();
+      })
+      .catch((e) => {
+        console.log(e);
+      });
+  }
+
   render() {
-    const { reservaFilter, cantAdentro, cantAfuera, cantTotal } = this.state;
+    const {
+      reservaFilter,
+      cantAdentro,
+      cantAfuera,
+      cantTotal,
+      totalAsistentes,
+    } = this.state;
     const totalMesas = 55;
     const totalAfuera = 45;
     const totalAdentro = 10;
     const colorTotal = cantTotal > 130 ? "red" : "";
+    const colorMoment = totalAsistentes > 130 ? "red" : "";
     return (
       <div className="list row">
         <div className="col-md-6">
@@ -152,48 +193,56 @@ export default class ReservaList extends Component {
               name="eventDate"
               utc
               closeOnSelect
+              initialValue={moment(new Date().getTime()).format("DD-MM-YYYY")}
               value={this.state.date}
               onChange={this.onChangeDate}
             />
           </div>
           <div className="form-group">
-            <label htmlFor="turno">Turno</label>
-            <select
-              className="form-control"
-              type="text"
-              id="turno"
-              placeholder="Seleccione un genero"
-              name="turno"
-              value={this.state.turno}
+            <InputLabel>Turno</InputLabel>
+            <Select
               onChange={this.onChangeTurno}
+              value={this.state.turno}
+              className="select__form"
+              fullWidth
             >
-              <option value="turno1">Turno 1</option>
-              <option value="turno2">Turno 2</option>
-            </select>
+              {turnos.map((turno) => (
+                <MenuItem key={turno.value} value={turno.value}>
+                  {turno.name}
+                </MenuItem>
+              ))}
+            </Select>
           </div>
-          <div className="list__reservas">
-            <span className="total__title">
-              Total reservas: {reservaFilter.length}{" "}
+
+          <Paper className="info__pedidos">
+            <div className="list__reservas">
+              <span className="total__title">
+                Total reservas: {reservaFilter.length}{" "}
+              </span>
+              <span>Adentro: {cantAdentro} </span>
+              <span className="cant__afuera">Afuera: {cantAfuera} </span>
+            </div>
+            <div className="list__libres">
+              <span className="total__title free">
+                Mesas libres: {totalMesas - reservaFilter.length}
+              </span>
+              <span>Adentro: {totalAdentro - cantAdentro} </span>
+              <span className="cant__afuera">
+                Afuera: {totalAfuera - cantAfuera}{" "}
+              </span>
+            </div>
+            <span className={`cant__total ${colorTotal}`}>
+              Total Personas: {cantTotal}
             </span>
-            <span>Adentro: {cantAdentro} </span>
-            <span className="cant__afuera">Afuera: {cantAfuera} </span>
-          </div>
-          <div className="list__libres">
-            <span className="total__title free">
-              Cantidad mesas libres: {totalMesas - reservaFilter.length}
+            <span className={`cant__total-asist ${colorMoment}`}>
+              En este momento: {totalAsistentes}
             </span>
-            <span>Adentro: {totalAdentro - cantAdentro} </span>
-            <span className="cant__afuera">
-              Afuera: {totalAfuera - cantAfuera}{" "}
-            </span>
-          </div>
-          <span className={`cant__total ${colorTotal}`}>
-            Total Personas: {cantTotal}
-          </span>
+          </Paper>
           <div className="table-container">
             <table className="table">
               <thead className="thead-dark">
                 <tr>
+                  <th scope="col">Asistió</th>
                   <th scope="col">Mesa</th>
                   <th scope="col">Nombre</th>
                   <th scope="col">Cantidad</th>
@@ -203,23 +252,41 @@ export default class ReservaList extends Component {
               </thead>
               <tbody>
                 {reservaFilter &&
-                  reservaFilter.map((reserva, index) => (
+                  reservaFilter.map((reserva, index) => 
+                  (
                     <tr key={index}>
+                      <td>
+                        <Checkbox
+                          checked={reserva.asistio}
+                          color="primary"
+                          onChange={(e) => {
+                            e.preventDefault();
+                            this.changeSelect(reserva);
+                          }}
+                        />
+                      </td>
                       <td>{reserva.mesa}</td>
-                      <td>{reserva.name}</td>
+                      <td>
+                        <a href={`/forest/mesa/${reserva.id}`}>{reserva.name}</a>
+                      </td>
+                       {/* <td>
+                        {reserva.name}
+                      </td> */}
                       <td>{reserva.cantidad}</td>
                       <td>{reserva.adentro ? "Adentro" : "Afuera"}</td>
                       <td>
-                        <a
-                          className="btn btn-light"
+                        <IconButton
+                          aria-label="delete"
+                          className="action__link"
                           href={`/forest/reserva/${reserva.id}`}
                           role="button"
                         >
-                          Editar
-                        </a>
-                        <button
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton
+                          aria-label="delete"
                           type="button"
-                          className="btn btn-danger"
+                          className="action__button"
                           onClick={() =>
                             alert("Eliminar", "Estás seguro???", [
                               { text: "Cancelar" },
@@ -230,8 +297,8 @@ export default class ReservaList extends Component {
                             ])
                           }
                         >
-                          Eliminar
-                        </button>
+                          <DeleteIcon color="secondary" />
+                        </IconButton>
                       </td>
                     </tr>
                   ))}

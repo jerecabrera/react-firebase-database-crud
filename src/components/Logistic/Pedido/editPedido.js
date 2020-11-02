@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import moment from "moment";
-import { List, Toast, Modal } from "antd-mobile";
+import { List, Toast } from "antd-mobile";
 import {
   TextField,
   InputAdornment,
@@ -21,22 +21,23 @@ import {
   DialogContent,
   DialogActions,
 } from "@material-ui/core";
+import { Modal } from "antd-mobile";
 import Datetime from "react-datetime";
+import KeyboardArrowDownIcon from "@material-ui/icons/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@material-ui/icons/KeyboardArrowUp";
 import ProductosDataService from "../../../services/productos.service";
 import PedidosDataService from "../../../services/pedidos.service";
-import ClientesDataService from "../../../services/clients.service";
 import SearchIcon from "@material-ui/icons/Search";
 import HighlightOffIcon from "@material-ui/icons/HighlightOff";
 import EditIcon from "@material-ui/icons/Edit";
-import KeyboardArrowDownIcon from "@material-ui/icons/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@material-ui/icons/KeyboardArrowUp";
 
 const alert = Modal.alert;
+const prompt = Modal.prompt;
+
 const Item = List.Item;
 const Brief = Item.Brief;
-const currentUser = JSON.parse(localStorage.getItem("currentUser"));
 
-export default class Pedido extends Component {
+export default class EditPedido extends Component {
   constructor(props) {
     super(props);
     this.onDataChange = this.onDataChange.bind(this);
@@ -47,41 +48,46 @@ export default class Pedido extends Component {
     this.onChangePeso = this.onChangePeso.bind(this);
     this.onChangeDto = this.onChangeDto.bind(this);
     this.onChangeIva = this.onChangeIva.bind(this);
+    this.onChangeIvaProd = this.onChangeIvaProd.bind(this);
     this.addPedido = this.addPedido.bind(this);
-    this.setInitialProduct = this.setInitialProduct.bind(this);
-    this.getLastId = this.getLastId.bind(this);
-    this.createPedido = this.createPedido.bind(this);
-    this.getClient = this.getClient.bind(this);
+    this.updatePedido = this.updatePedido.bind(this);
+    this.getCurrentPedido = this.getCurrentPedido.bind(this);
     this.onChangeDate = this.onChangeDate.bind(this);
     this.setOpen = this.setOpen.bind(this);
     this.deleteProduct = this.deleteProduct.bind(this);
-    
+    this.handleClose = this.handleClose.bind(this);
+    this.handleOpenModal = this.handleOpenModal.bind(this);
+    this.editProduct = this.editProduct.bind(this);
+    this.onChangeValueProduct = this.onChangeValueProduct.bind(this);
+
     this.state = {
       products: [],
-      currentProduct: null,
-      lastId: 0,
       peso: "1",
       cantidad: "",
       descuento: "",
-      indexActive: -1,
+      indexActive: 0,
       pedido: {
+        key: null,
         id: 0,
         idCliente: 0,
         clienteName: "",
-        clienteDomicilio: "",
         productos: [],
         fecha: moment(new Date().getTime()).format("DD-MM-YYYY hh:mm"),
         total: 0,
         status: "Creado",
-        fechaEntrega: moment(new Date().getTime()).add(1, 'days').format("DD-MM-YYYY"),
-        user: currentUser.userName
+        fechaEntrega: "",
+      },
+      producto: {
+        peso: "",
+        cantidad: "",
+        descuento: "",
+        iva: "",
       },
       searchTitle: "",
       productoFilter: [],
       iva: false,
       medioIva: false,
       submitted: false,
-      keyClient: '',
       open: false,
       editProd: false,
       indexProdOpen: -1,
@@ -92,21 +98,15 @@ export default class Pedido extends Component {
     const id = parseInt(this.props.match.params.id, 10);
     PedidosDataService.getAll()
       .orderByChild("id")
-      .limitToLast(1)
-      .once("child_added", this.getLastId);
+      .equalTo(id)
+      .once("value", this.getCurrentPedido);
     ProductosDataService.getAll()
       .orderByChild("id")
       .once("value", this.onDataChange);
-    ClientesDataService.getAll()
-      .orderByChild("id")
-      .equalTo(id)
-      .once("child_added", this.getClient);
   }
 
   componentWillUnmount() {
-    ProductosDataService.getAll().off("value", this.onDataChange);
-    PedidosDataService.getAll().off("child_added", this.getLastId);
-    ClientesDataService.getAll().off("child_added", this.getClient);
+    PedidosDataService.getAll().off("value", this.getCurrentPedido);
   }
 
   onDataChange(items) {
@@ -120,45 +120,17 @@ export default class Pedido extends Component {
         marca: data.marca,
         stock: data.stock,
         precio: data.precio,
-        peso: data.peso,
       });
     });
     this.setState({ products });
   }
 
-  getLastId(items) {
-    this.setState({ lastId: items.val().id || 0 });
-    this.setInitialProduct();
-  }
-
-  setInitialProduct() {
-    const lastId = this.state.lastId;
-    const idCliente = parseInt(this.props.match.params.id, 10);
-    this.setState({
-      pedido: {
-        id: lastId + 1,
-        idCliente,
-        clienteName: "",
-        clienteDomicilio: "",
-        status: "Creado",
-        productos: [],
-        fecha: moment(new Date().getTime()).format("DD-MM-YYYY hh:mm"),
-        total: 0,
-        fechaEntrega: moment(new Date().getTime()).add(1, 'days').format("DD-MM-YYYY"),
-        user: currentUser.userName,
-      },
-    });
-  }
-
-  getClient(item) {
-    this.setState({
-      pedido: {
-        ...this.state.pedido,
-        clienteName: item.val().razon_social || "",
-        clienteDomicilio: item.val().domicilio || "",
-      },
-      keyClient: item.key,
-    });
+  getCurrentPedido(item) {
+    let key = Object.keys(item.val());
+    let data = item.val();
+    const pedido = data[key];
+    pedido.key = key[0];
+    this.setState({ pedido });
   }
 
   onChangeSearchTitle(e) {
@@ -187,8 +159,8 @@ export default class Pedido extends Component {
     }, 500);
   }
 
-  setActive(peso, index) {
-    this.setState({ indexActive: index, peso });
+  setActive(index) {
+    this.setState({ indexActive: index });
   }
 
   onChangeCantidad(e) {
@@ -219,7 +191,7 @@ export default class Pedido extends Component {
   }
 
   addPedido(subtotal, idProducto) {
-    const { products, cantidad, peso, descuento, iva, medioIva } = this.state;
+    const { products, peso, cantidad, descuento, iva, medioIva } = this.state;
     const produc = products.filter((prod) => prod.id === idProducto);
     let isIva = "No";
     if (iva) {
@@ -232,7 +204,6 @@ export default class Pedido extends Component {
       codigo: produc[0].codigo,
       descripcion: produc[0].descripcion,
       marca: produc[0].marca,
-      precio: produc[0].precio,
       peso,
       cantidad,
       descuento,
@@ -247,6 +218,7 @@ export default class Pedido extends Component {
         ...this.state.pedido,
         total,
       },
+      peso: "1",
       cantidad: "",
       descuento: "",
       iva: false,
@@ -254,44 +226,6 @@ export default class Pedido extends Component {
     });
     Toast.success("Cargado correctamente!!", 1);
   }
-
-  createPedido(condPago) {
-    let data = {
-      id: this.state.pedido.id,
-      idCliente: this.state.pedido.idCliente,
-      clienteName: this.state.pedido.clienteName,
-      clienteDomicilio: this.state.pedido.clienteDomicilio,
-      productos: this.state.pedido.productos,
-      fecha: this.state.pedido.fecha,
-      status: this.state.pedido.status,
-      fechaEntrega: this.state.pedido.fechaEntrega,
-      user: currentUser.userName,
-      condPago,
-      total: this.state.pedido.total,
-    };
-    const estado = { estado: "visitado" }
-    ClientesDataService.update(this.state.keyClient, estado)
-    .then(() => {})
-    .catch((e) => {
-      Toast.fail("Ocurrió un error !!!", 2);
-    });
-    PedidosDataService.create(data)
-      .then(() => {
-        Toast.loading("Loading...", 1, () => {
-          this.setState({
-            submitted: true,
-          });
-        });
-      })
-      .catch((e) => {
-        Toast.fail("Ocurrió un error !!!", 2);
-      });
-  }
-
-  setOpen() {
-    this.setState({ open: !this.state.open });
-  }
-
 
   deleteProduct(codigo) {
     const { pedido } = this.state;
@@ -309,22 +243,111 @@ export default class Pedido extends Component {
     });
   }
 
+  handleOpenModal(index) {
+    this.setState({
+      editProd: true,
+      indexProdOpen: index,
+    });
+  }
+
+  handleClose() {
+    this.setState({
+      editProd: false,
+      indexProdOpen: -1,
+    });
+  }
+
+  onChangeValueProduct(e) {
+    const name = e.target.name;
+    const value = e.target.value;
+    this.setState({
+      producto: {
+        ...this.state.producto,
+        [name]: value,
+      },
+    });
+  }
+
+  onChangeIvaProd(e) {
+    const valor = e.target.value;
+    this.setState({ [valor]: !this.state[valor] });
+  }
+
+  editProduct(product) {
+    const { pedido, producto } = this.state
+    const subtotal = product.precio * producto.peso * producto.cantidad;
+    const subtotalDto = subtotal - (subtotal * producto.descuento) / 100;
+    product.peso = producto.peso;
+    product.cantidad = producto.cantidad;
+    product.descuento = producto.descuento;
+    product.subtotal = subtotalDto;
+
+    let newTotal = 0;
+    pedido.productos.forEach((prd) => {
+      newTotal += prd.subtotal;
+    });
+    this.setState({
+      pedido: {
+        ...this.state.pedido,
+        total: newTotal,
+      },
+      editProd: false,
+      indexProdOpen: -1,
+      producto: {
+        peso: "",
+        cantidad: "",
+        descuento: "",
+        iva: "",
+      },
+    });
+  }
+
+  updatePedido() {
+    let data = {
+      id: this.state.pedido.id,
+      idCliente: this.state.pedido.idCliente,
+      clienteName: this.state.pedido.clienteName,
+      productos: this.state.pedido.productos,
+      fecha: this.state.pedido.fecha,
+      status: this.state.pedido.status,
+      fechaEntrega: this.state.pedido.fechaEntrega,
+      total: this.state.pedido.total,
+    };
+
+    PedidosDataService.update(this.state.pedido.key, data)
+      .then(() => {
+        Toast.loading("Loading...", 1, () => {
+          this.setState({
+            submitted: true,
+          });
+        });
+      })
+      .catch((e) => {
+        Toast.fail("Ocurrió un error !!!", 2);
+      });
+  }
+
+  setOpen() {
+    this.setState({ open: !this.state.open });
+  }
+
   render() {
     const {
       submitted,
       products,
       searchTitle,
       indexActive,
+      peso,
       descuento,
       cantidad,
       productoFilter,
       iva,
       medioIva,
-      peso,
       pedido,
       open,
       editProd,
       indexProdOpen,
+      producto,
     } = this.state;
     const displayTable = searchTitle !== "" ? productoFilter : products;
     let subtotalDto = 0.0;
@@ -333,7 +356,7 @@ export default class Pedido extends Component {
       <div className="list row">
         {submitted ? (
           <div>
-            <h4>Pedido creado correctamente!</h4>
+            <h4>Pedido editado correctamente!</h4>
             <a
               className="btn btn-primary go-listado"
               href="/new-visit"
@@ -416,7 +439,7 @@ export default class Pedido extends Component {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {pedido.productos && pedido.productos.map((row, index) => (
+                    {pedido.productos.map((row, index) => (
                       <TableRow key={row.codigo}>
                         <TableCell>
                           <IconButton
@@ -436,7 +459,7 @@ export default class Pedido extends Component {
                           >
                             <HighlightOffIcon />
                           </IconButton>
-                          {/* <IconButton
+                          <IconButton
                             className="action__link"
                             size="small"
                             onClick={(e) => {
@@ -484,7 +507,7 @@ export default class Pedido extends Component {
                                 label="Desc."
                                 value={producto.descuento}
                                 onChange={this.onChangeValueProduct}
-                              /> */}
+                              />
                               {/* <div>
                                 <FormControlLabel
                                   control={
@@ -508,7 +531,7 @@ export default class Pedido extends Component {
                                   }
                                   label="1/2 IVA"
                                 />
-                              </div>
+                              </div> */}
                             </DialogContent>
                             <DialogActions>
                               <Button
@@ -527,7 +550,7 @@ export default class Pedido extends Component {
                                 Aceptar
                               </Button>
                             </DialogActions>
-                          </Dialog> */}
+                          </Dialog>
                         </TableCell>
                         <TableCell component="th" scope="row">
                           {row.codigo}
@@ -548,7 +571,6 @@ export default class Pedido extends Component {
                 </Table>
               </TableContainer>
             )}
-
             <div className="table-container pedido">
               {products &&
                 displayTable.map((producto, index) => {
@@ -566,7 +588,7 @@ export default class Pedido extends Component {
                         multipleLine
                         onClick={(e) => {
                           e.preventDefault();
-                          this.setActive(producto.peso, index);
+                          this.setActive(index);
                         }}
                         wrap
                       >
@@ -673,7 +695,7 @@ export default class Pedido extends Component {
                               this.addPedido(subtotalDto, producto.id);
                             }}
                             disabled={
-                              !isActive || cantidad === ""
+                              !isActive || peso === "" || cantidad === ""
                             }
                           >
                             Agregar
@@ -685,48 +707,14 @@ export default class Pedido extends Component {
                 })}
             </div>
             <div role="region" className="total-banner">
-              <p className="total__text">
-                Total: $ {pedido.total.toFixed(2)}
-              </p>
+              <p className="total__text">Total: $ {pedido.total.toFixed(2)}</p>
               <Button
                 variant="contained"
                 color="primary"
                 className="total__button"
-                // onClick={this.createPedido}
-                onClick={() =>
-                  alert(
-                    "Tipo cobro",
-                    <div></div>,
-                    [
-                      {
-                        text: "Contado",
-                        onPress: () =>
-                          this.createPedido('contado'),
-                      },
-                      {
-                        text: "Contado 7 dias",
-                        onPress: () =>
-                          this.createPedido('a 7 dias'),
-                      },
-                      {
-                        text: "Contado 14 dias",
-                        onPress: () =>
-                          this.createPedido('a 14 dias'),
-                      },
-                      {
-                        text: "Contado 21 dias",
-                        onPress: () =>
-                          this.createPedido('a 21 dias'),
-                      },
-                      {
-                        text: "Cancelar",
-                      },
-                    ]
-                  )
-                }
-                disabled={pedido.total === 0}
+                onClick={this.updatePedido}
               >
-                Finalizar pedido
+                Actualizar pedido
               </Button>
             </div>
           </div>

@@ -5,12 +5,12 @@ class App extends Component {
     const date = new Date();
     return (
       <footer role="contentinfo" className="footer">
-        <div class="copy-right_text">
-          <div class="container">
-            <div class="footer_border"></div>
-            <div class="row">
-              <div class="col-xl-7 col-md-6">
-                <p class="copy_right">
+        <div className="copy-right_text">
+          <div className="container">
+            <div className="footer_border"></div>
+            <div className="row">
+              <div className="col-xl-7 col-md-6">
+                <p className="copy_right">
                   Copyright &copy;
                   {date.getFullYear()} All rights reserved | 
                   <span className="footer_made">

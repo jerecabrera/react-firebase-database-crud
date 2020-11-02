@@ -1,6 +1,16 @@
 import React, { Component } from "react";
+import {
+  Button,
+  TextField,
+  Typography,
+  Grid,
+  Container,
+  InputLabel,
+  MenuItem,
+  Select,
+} from "@material-ui/core";
 import ProductosDataService from "../../../services/productos.service";
-import marcas from "../../../utils/default"
+import marcas from "../../../utils/default";
 
 export default class AddProduct extends Component {
   constructor(props) {
@@ -11,8 +21,9 @@ export default class AddProduct extends Component {
     this.onChangeStock = this.onChangeStock.bind(this);
     this.onChangePrecio = this.onChangePrecio.bind(this);
     this.onDataChange = this.onDataChange.bind(this);
-    this.saveClient = this.saveClient.bind(this);
-    this.newClient = this.newClient.bind(this);
+    this.saveProduct = this.saveProduct.bind(this);
+    this.newProduct = this.newProduct.bind(this);
+    this.onChangeValues = this.onChangeValues.bind(this);
 
     this.state = {
       codigo: "",
@@ -21,6 +32,7 @@ export default class AddProduct extends Component {
       precio: "",
       stock: 0,
       lastId: 0,
+      peso: 1,
 
       submitted: false,
     };
@@ -41,7 +53,7 @@ export default class AddProduct extends Component {
     this.setState({
       lastId: items.val().id || 0,
     });
-    console.log(items.val().id );
+    console.log(items.val().id);
   }
 
   onChangeCodigo(e) {
@@ -70,7 +82,13 @@ export default class AddProduct extends Component {
     });
   }
 
-  saveClient() {
+  onChangeValues(e) {
+    const name = e.target.name;
+    const value = e.target.value;
+    this.setState({ [name]: value });
+  }
+
+  saveProduct() {
     let data = {
       id: this.state.lastId + 1,
       codigo: this.state.codigo,
@@ -78,6 +96,7 @@ export default class AddProduct extends Component {
       stock: parseInt(this.state.stock, 10),
       marca: this.state.marca,
       precio: this.state.precio,
+      peso: parseInt(this.state.peso, 10),
     };
 
     ProductosDataService.create(data)
@@ -92,7 +111,7 @@ export default class AddProduct extends Component {
       });
   }
 
-  newClient() {
+  newProduct() {
     this.setState({
       codigo: "",
       descripcion: "",
@@ -107,97 +126,123 @@ export default class AddProduct extends Component {
 
   render() {
     return (
-      <div className="submit-form">
+      <Container component="main" maxWidth="xs">
         {this.state.submitted ? (
           <div>
             <h4>Producto creado correctamente!</h4>
-            <button className="btn btn-success" onClick={this.newClient}>
+            <button className="btn btn-success" onClick={this.newProduct}>
               Nuevo
             </button>
-            <a class="btn btn-primary go-listado" href="/list-products" role="button">
+            <a
+              className="btn btn-primary go-listado"
+              href="/list-products"
+              role="button"
+            >
               Listado
             </a>
           </div>
         ) : (
-          <div>
-            <h2 className="title-page">Nuevo producto</h2>
-            <div className="form-group">
-              <label htmlFor="codigo">Código</label>
-              <input
-                type="text"
-                className="form-control"
-                id="codigo"
-                required
-                value={this.state.codigo}
-                onChange={this.onChangeCodigo}
-                name="codigo"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="descripcion">Descripción</label>
-              <input
-                type="text"
-                className="form-control"
-                id="descripcion"
-                value={this.state.descripcion}
-                onChange={this.onChangeDescripcion}
-                name="descripcion"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="marca">Marca</label>
-              <select
-                className="form-control"
-                type="text"
-                id="marca"
-                placeholder="Seleccione una marca"
-                name="marca"
-                value={this.state.marca}
-                onChange={this.onChangeMarca}
+          <div className="form-container">
+            <Typography component="h1" variant="h5">
+              Nuevo Producto
+            </Typography>
+            <div className="login-container">
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    variant="outlined"
+                    required
+                    fullWidth
+                    className="default__textfield"
+                    id="codigo"
+                    label="Código"
+                    value={this.state.codigo}
+                    name="codigo"
+                    onChange={this.onChangeCodigo}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    variant="outlined"
+                    required
+                    fullWidth
+                    className="default__textfield"
+                    id="descripcion"
+                    label="Descripción"
+                    value={this.state.descripcion}
+                    name="descripcion"
+                    onChange={this.onChangeDescripcion}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <InputLabel>Marca</InputLabel>
+                  <Select
+                    onChange={this.onChangeMarca}
+                    value={this.state.marca}
+                    className="select__form"
+                    fullWidth
+                  >
+                    {marcas.map((marca) => (
+                      <MenuItem key={marca} value={marca}>
+                        {marca}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    variant="outlined"
+                    required
+                    fullWidth
+                    className="default__textfield"
+                    id="peso"
+                    label="Peso"
+                    value={this.state.peso}
+                    name="peso"
+                    onChange={this.onChangeValues}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    variant="outlined"
+                    required
+                    fullWidth
+                    className="default__textfield"
+                    id="precio"
+                    label="Precio"
+                    value={this.state.precio}
+                    name="precio"
+                    onChange={this.onChangePrecio}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    variant="outlined"
+                    required
+                    fullWidth
+                    className="default__textfield"
+                    id="stock"
+                    label="Stock"
+                    value={this.state.stock}
+                    name="stock"
+                    onChange={this.onChangeStock}
+                  />
+                </Grid>
+              </Grid>
+              <Button
+                type="button"
+                fullWidth
+                variant="contained"
+                color="primary"
+                className="button__save"
+                onClick={this.saveProduct}
               >
-                {marcas.map(marca => 
-                  <option key={marca} value={marca}>{marca}</option>
-                )}
-              </select>
+                Aceptar
+              </Button>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="precio">Precio</label>
-              <input
-                type="text"
-                className="form-control"
-                pattern="^\$\d{1,3}(,\d{3})*(\.\d+)?$"
-                data-type="currency"
-                id="precio"
-                required
-                value={this.state.precio}
-                onChange={this.onChangePrecio}
-                name="precio"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="stock">Stock</label>
-              <input
-                type="number"
-                className="form-control"
-                id="stock"
-                data-type="number"
-                required
-                value={this.state.stock}
-                onChange={this.onChangeStock}
-                name="stock"
-              />
-            </div>
-
-            <button onClick={this.saveClient} className="btn btn-success">
-              Aceptar
-            </button>
           </div>
         )}
-      </div>
+      </Container>
     );
   }
 }

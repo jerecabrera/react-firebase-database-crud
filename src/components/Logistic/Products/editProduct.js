@@ -1,6 +1,16 @@
 import React, { Component } from "react";
 import ProductosDataService from "../../../services/productos.service";
-import marcas from "../../../utils/default"
+import marcas from "../../../utils/default";
+import {
+  Button,
+  TextField,
+  Typography,
+  Grid,
+  Container,
+  InputLabel,
+  MenuItem,
+  Select,
+} from "@material-ui/core";
 
 export default class EditProduct extends Component {
   constructor(props) {
@@ -12,7 +22,8 @@ export default class EditProduct extends Component {
     this.onChangePrecio = this.onChangePrecio.bind(this);
     this.onDataChange = this.onDataChange.bind(this);
     this.updateProduct = this.updateProduct.bind(this);
-
+    this.onChangeValues = this.onChangeValues.bind(this);
+    
     this.state = {
       currentProduct: {
         key: null,
@@ -22,6 +33,7 @@ export default class EditProduct extends Component {
         marca: "",
         precio: "",
         stock: 0,
+        peso: 1,
       },
 
       submitted: false,
@@ -89,6 +101,17 @@ export default class EditProduct extends Component {
     });
   }
 
+  onChangeValues(e) {
+    const name = e.target.name;
+    const value = e.target.value;
+    this.setState({
+      currentProduct: {
+        ...this.state.currentProduct,
+        [name]: value,
+      },
+    });
+  }
+
   updateProduct() {
     const data = {
       id: this.state.currentProduct.id,
@@ -97,6 +120,7 @@ export default class EditProduct extends Component {
       stock: parseInt(this.state.currentProduct.stock, 10),
       marca: this.state.currentProduct.marca,
       precio: this.state.currentProduct.precio,
+      peso: parseInt(this.state.currentProduct.peso, 10),
     };
 
     ProductosDataService.update(this.state.currentProduct.key, data)
@@ -112,12 +136,12 @@ export default class EditProduct extends Component {
 
   render() {
     return (
-      <div className="submit-form">
+      <Container component="main" maxWidth="xs">
         {this.state.submitted ? (
           <div>
-            <h4>Producto creado correctamente!</h4>
+            <h4>Producto editado correctamente!</h4>
             <a
-              class="btn btn-primary go-listado"
+              className="btn btn-primary go-listado"
               href="/list-products"
               role="button"
             >
@@ -125,85 +149,107 @@ export default class EditProduct extends Component {
             </a>
           </div>
         ) : (
-          <div>
-            <h2 className="title-page">Nuevo producto</h2>
-            <div className="form-group">
-              <label htmlFor="codigo">Código</label>
-              <input
-                type="text"
-                className="form-control"
-                id="codigo"
-                required
-                value={this.state.currentProduct.codigo}
-                onChange={this.onChangeCodigo}
-                name="codigo"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="descripcion">Descripción</label>
-              <input
-                type="text"
-                className="form-control"
-                id="descripcion"
-                value={this.state.currentProduct.descripcion}
-                onChange={this.onChangeDescripcion}
-                name="descripcion"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="marca">Marca</label>
-              <select
-                className="form-control"
-                type="text"
-                id="marca"
-                placeholder="Seleccione una marca"
-                name="marca"
-                value={this.state.currentProduct.marca}
-                onChange={this.onChangeMarca}
+          <div className="form-container">
+            <Typography component="h1" variant="h5">
+              Editar producto
+            </Typography>
+            <div className="login-container">
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    variant="outlined"
+                    required
+                    fullWidth
+                    className="default__textfield"
+                    id="codigo"
+                    label="Código"
+                    value={this.state.currentProduct.codigo}
+                    name="codigo"
+                    onChange={this.onChangeCodigo}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    variant="outlined"
+                    required
+                    fullWidth
+                    className="default__textfield"
+                    id="descripcion"
+                    label="Descripción"
+                    value={this.state.currentProduct.descripcion}
+                    name="descripcion"
+                    onChange={this.onChangeDescripcion}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <InputLabel>Marca</InputLabel>
+                  <Select
+                    onChange={this.onChangeMarca}
+                    value={this.state.currentProduct.marca}
+                    className="select__form"
+                    fullWidth
+                  >
+                    {marcas.map((marca) => (
+                      <MenuItem key={marca} value={marca}>
+                        {marca}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    variant="outlined"
+                    required
+                    fullWidth
+                    className="default__textfield"
+                    id="peso"
+                    label="Peso"
+                    value={this.state.currentProduct.peso}
+                    name="peso"
+                    onChange={this.onChangeValues}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    variant="outlined"
+                    required
+                    fullWidth
+                    className="default__textfield"
+                    id="precio"
+                    label="Precio"
+                    value={this.state.currentProduct.precio}
+                    name="precio"
+                    onChange={this.onChangePrecio}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    variant="outlined"
+                    required
+                    fullWidth
+                    className="default__textfield"
+                    id="stock"
+                    label="Stock"
+                    value={this.state.currentProduct.stock}
+                    name="stock"
+                    onChange={this.onChangeStock}
+                  />
+                </Grid>
+              </Grid>
+              <Button
+                type="button"
+                fullWidth
+                variant="contained"
+                color="primary"
+                className="button__save"
+                onClick={this.updateProduct}
               >
-                {marcas.map((marca) => (
-                  <option key={marca} value={marca}>{marca}</option>
-                ))}
-              </select>
+                Aceptar
+              </Button>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="precio">Precio</label>
-              <input
-                type="text"
-                className="form-control"
-                pattern="^\$\d{1,3}(,\d{3})*(\.\d+)?$"
-                data-type="currency"
-                id="precio"
-                required
-                value={this.state.currentProduct.precio}
-                onChange={this.onChangePrecio}
-                name="precio"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="stock">Stock</label>
-              <input
-                type="number"
-                className="form-control"
-                id="stock"
-                data-type="number"
-                required
-                value={this.state.currentProduct.stock}
-                onChange={this.onChangeStock}
-                name="stock"
-              />
-            </div>
-
-            <button onClick={this.updateProduct} className="btn btn-success">
-              Aceptar
-            </button>
           </div>
         )}
-      </div>
+      </Container>
     );
   }
 }
