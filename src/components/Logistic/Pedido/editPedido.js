@@ -81,7 +81,7 @@ export default class EditPedido extends Component {
         peso: "",
         cantidad: "",
         descuento: "",
-        iva: "",
+        // iva: "",
       },
       searchTitle: "",
       productoFilter: [],
@@ -243,10 +243,15 @@ export default class EditPedido extends Component {
     });
   }
 
-  handleOpenModal(index) {
+  handleOpenModal(index, product) {
     this.setState({
       editProd: true,
       indexProdOpen: index,
+      producto: {
+        peso: product.peso,
+        cantidad: product.cantidad,
+        descuento: product.descuento,
+      },
     });
   }
 
@@ -464,7 +469,7 @@ export default class EditPedido extends Component {
                             size="small"
                             onClick={(e) => {
                               e.preventDefault();
-                              this.handleOpenModal(index);
+                              this.handleOpenModal(index, row);
                             }}
                           >
                             <EditIcon />

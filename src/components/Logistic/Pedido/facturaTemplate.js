@@ -35,10 +35,6 @@ export default class Pedido extends Component {
       .orderByChild("id")
       .equalTo(id)
       .once("child_added", this.getPedido);
-    ClientesDataService.getAll()
-      .orderByChild("id")
-      .equalTo(id)
-      .once("value", this.getClient);
   }
 
   componentWillUnmount() {
@@ -50,6 +46,10 @@ export default class Pedido extends Component {
     this.setState({
       pedido: item.val(),
     });
+    ClientesDataService.getAll()
+    .orderByChild("id")
+    .equalTo(item.val().idCliente)
+    .once("value", this.getClient);
   }
 
   getClient(items) {
@@ -72,6 +72,7 @@ export default class Pedido extends Component {
 
   render() {
     const { pedido, currentClient } = this.state;
+    // console.log(pedido)
     return (
       <div id="printContent">
         {/* <div className="control-bar">
@@ -158,7 +159,6 @@ export default class Pedido extends Component {
                 <br />
                 <p className="client-cuit">CUIT: {currentClient.dni}</p>
                 <p className="client-detail right">Condición IVA: {currentClient.condicionIva}</p>
-                {/* <p className="client-detail right">Condición IVA:</p> */}
               </span>
               <p className="vendedor">
                 <strong>Vendedor</strong>
@@ -169,7 +169,7 @@ export default class Pedido extends Component {
 
             <div className="col-4 details">
               <p>
-                Fecha: {moment(new Date().getTime()).format("DD/MM/YYYY")}
+                Fecha: {moment(pedido.fecha, "DD-MM-YYYY hh:mm").format("DD/MM/YYYY")}
                 <br />
                 Factura #: 001 - {pedido.id.toString().padStart(5, "0")}
                 <br />
@@ -317,7 +317,7 @@ export default class Pedido extends Component {
 
             <div className="col-4 details">
               <p>
-                Fecha: {moment(new Date().getTime()).format("DD/MM/YYYY")}
+                Fecha: {moment(pedido.fecha, "DD-MM-YYYY hh:mm").format("DD/MM/YYYY")}
                 <br />
                 Factura #: 001 - {pedido.id.toString().padStart(5, "0")}
                 <br />

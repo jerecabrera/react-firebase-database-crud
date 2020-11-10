@@ -23,6 +23,11 @@ button.button-mesa.turno2 {
   color: white;
 }
 
+button.button-mesa.two-colors {
+  color: white;
+  background-image: linear-gradient(to right, #3f51b5, rgba(255,0,0,1));
+}
+
 button.button-mesa.digits {
   padding: 15px;
 }

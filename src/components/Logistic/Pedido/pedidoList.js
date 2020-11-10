@@ -32,6 +32,7 @@ import DeleteIcon from "@material-ui/icons/Delete";
 import EditIcon from "@material-ui/icons/Edit";
 import PedidosDataService from "../../../services/pedidos.service";
 import ClientsDataService from "../../../services/clients.service";
+const queryString = require("query-string");
 
 const alert = Modal.alert;
 
@@ -51,28 +52,41 @@ export default class PedidoList extends Component {
     this.getClientsByDay = this.getClientsByDay.bind(this);
     this.getQuantity = this.getQuantity.bind(this);
     this.handleClose = this.handleClose.bind(this);
-    
+
     this.state = {
       pedidos: [],
-      date: moment(new Date().getTime()).format("DD-MM-YYYY"),
+      date:
+        queryString.parse(this.props.location.search).date ||
+        moment(new Date().getTime()).format("DD-MM-YYYY"),
       pedidoFilter: [],
       open: false,
       indexOpen: 0,
       expandAll: false,
-      entregaPedido: false,
+      entregaPedido:
+        queryString.parse(this.props.location.search).entrega || false,
       clients: [],
       cantVisitas: 0,
       quantityProd: {},
       openModal: false,
+      prodDesc: [],
     };
   }
 
   componentDidMount() {
     const today = moment(new Date().getTime()).get("day");
+    const dateFormat = moment(new Date().getTime()).format("DD-MM-YYYY");
+    if (!this.props.location.search) {
+      window.location.href = `/list-pedidos?date=${dateFormat}`;
+      this.getClients(today);
+    } else {
+      const params = queryString.parse(this.props.location.search);
+      const day = moment(params.date, "DD-MM-AAAA").get("day");
+      this.getClients(day);
+    }
+
     PedidosDataService.getAll()
       .orderByChild("id")
       .on("value", this.onDataChange);
-    this.getClients(today);
   }
 
   componentWillUnmount() {
@@ -95,7 +109,7 @@ export default class PedidoList extends Component {
         clienteDomicilio: data.clienteDomicilio,
         productos: data.productos,
         status: data.status,
-        condPago: data.condPago || '',
+        condPago: data.condPago || "",
         total: data.total,
       });
     });
@@ -105,8 +119,7 @@ export default class PedidoList extends Component {
   }
 
   filterPedidos(fecha, entrega) {
-    const { pedidos, date } = this.state;
-    const entregaPedido = entrega;
+    const { pedidos, date, entregaPedido } = this.state;
     let pedido = [];
     const fechaComp = fecha || date;
     pedidos.forEach((item) => {
@@ -146,10 +159,9 @@ export default class PedidoList extends Component {
 
   onChangeDate(e) {
     const dateFormat = e.format("DD-MM-YYYY");
-    const day = moment(e).get("day");
-    this.setState({ date: dateFormat });
-    this.filterPedidos(dateFormat);
-    this.getClients(day);
+    window.location.href = this.state.entregaPedido
+      ? `/list-pedidos?date=${dateFormat}&entrega=true`
+      : `/list-pedidos?date=${dateFormat}`;
   }
 
   setOpen(index) {
@@ -191,29 +203,41 @@ export default class PedidoList extends Component {
   }
 
   changeEntrega() {
-    this.setState({ entregaPedido: !this.state.entregaPedido });
-    this.filterPedidos(this.state.date, !this.state.entregaPedido);
+    if (this.state.entregaPedido) {
+      window.location.href = `/list-pedidos?date=${this.state.date}`;
+    } else {
+      window.location.href = `/list-pedidos?date=${this.state.date}&entrega=true`;
+    }
   }
 
   getQuantity() {
     const { pedidoFilter } = this.state;
     let cantByProd = {};
-    let a = []
+    const arrayProd = [];
     pedidoFilter.forEach((pedido) => {
       if (pedido.productos) {
         pedido.productos.forEach((prod) => {
-          const quantity = parseInt(prod.cantidad, 10)
+          const quantity = parseInt(prod.cantidad, 10);
+          const prodDesc = {
+            codigo: prod.codigo,
+            desc: prod.descripcion,
+          };
           if (cantByProd[prod.codigo] === undefined) {
             cantByProd[prod.codigo] = quantity;
           } else {
             cantByProd[prod.codigo] += quantity;
           }
+          if (arrayProd.filter((pr) => pr.codigo === prod.codigo).length < 1) {
+            arrayProd.push(prodDesc);
+          }
         });
       }
-      // a.push(cantByProd)
     });
-    console.log(cantByProd);
-    this.setState({ openModal: true, quantityProd: cantByProd });
+    this.setState({
+      openModal: true,
+      quantityProd: cantByProd,
+      prodDesc: arrayProd,
+    });
   }
 
   handleClose() {
@@ -231,6 +255,7 @@ export default class PedidoList extends Component {
       cantVisitas,
       openModal,
       quantityProd,
+      prodDesc,
     } = this.state;
     let totalPorDia = 0;
 
@@ -264,6 +289,7 @@ export default class PedidoList extends Component {
                   <TableHead>
                     <TableRow>
                       <TableCell>Código</TableCell>
+                      <TableCell>Descripción</TableCell>
                       <TableCell>Cantidad</TableCell>
                     </TableRow>
                   </TableHead>
@@ -272,6 +298,9 @@ export default class PedidoList extends Component {
                       return (
                         <TableRow key={row}>
                           <TableCell>{row}</TableCell>
+                          <TableCell>
+                            {prodDesc.filter((pr) => pr.codigo === row)[0].desc}
+                          </TableCell>
                           <TableCell>{quantityProd[row]}</TableCell>
                         </TableRow>
                       );
